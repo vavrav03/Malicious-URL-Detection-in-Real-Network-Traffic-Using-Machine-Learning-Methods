@@ -1,0 +1,10 @@
+{
+  "time_n_per_s_total_with_tokenizer": 844.9995793439692,
+  "time_n_per_s_total_without_tokenizer": 955.1842830493514,
+  "time_n_per_s_forward_with_softmax": 961.1872871778147,
+  "time_n_per_s_forward_without_softmax": 962.5799512396953,
+  "time_s_per_1_total_with_tokenizer": 0.0011834325417964919,
+  "time_s_per_1_total_without_tokenizer": 0.0010469183986231202,
+  "time_s_per_1_forward_with_softmax": 0.0010403799689612469,
+  "time_s_per_1_forward_without_softmax": 0.0010388747435598588
+}

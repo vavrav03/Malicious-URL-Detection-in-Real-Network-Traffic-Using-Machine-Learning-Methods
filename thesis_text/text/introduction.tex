@@ -1,0 +1,18 @@
+\chapter*{Introduction}
+This thesis deals with models used for malicious URL (Uniform resource locator) detection. Such models are trained to determine whether a URL points to malicious or benign content using only information from the URL string. The thesis aims to train a model with a higher inference speed than the current baselines while maintaining predictive performance.
+
+The motivation for the thesis stems from the fact that URL string-based models operate in the early stages of the malicious URL detection pipeline. While basic mechanisms like blocklists and allowlists can precede this step, they fail to generalize to newly registered or previously unseen domains. On the other hand, methods for website content analysis can deliver better predictions but are too computationally expensive. URL-string-based models offer a practical middle ground -- they're fast and scalable, making them ideal for quickly filtering out obvious cases. This helps narrow the list of suspicious URLs, so heavier detection methods only need to handle the smaller, high-risk group.
+
+Although this thesis focuses on binary classification, the approach can be extended to multi-class scenarios, predicting specific attack types such as credential phishing or drive-by downloads.
+
+The thesis begins by providing a broader context to the problem of malicious URL detection. This is followed by a summary of related work focusing on existing URL-based detection methods and methods for increasing model speed, such as quantization.
+
+Afterwards, a thorough exploratory analysis was conducted on both public datasets and a private dataset, using real-world data provided by Cisco through the thesis supervisor. This analysis revealed that standard dataset splitting can lead to performance overestimation, as models tend to memorize second-level domains instead of learning generalizable features. A specialized strategy for splitting datasets was used to ensure a more realistic estimation of model performance.
+
+Following this, the BERT-Small~\cite{turc2019} model and selected models from related work were evaluated on the prepared datasets to establish baseline performance for subsequent experiments. To improve inference speed, the thesis adopts two main complementary strategies.
+
+The first focuses on training inherently smaller and faster models while maintaining predictive performance comparable to baseline models. An ablation study was performed on the BERT-Tiny variant to identify better hyperparameter combinations for BERT-based models. Additionally, a novel data augmentation technique, domain masking, was introduced to mitigate over-fitting caused by memorization of domain names during training. Combining these improvements with the BERT-Mini~\cite{turc2019} architecture resulted in outperforming the larger BERT-Small in key evaluation metrics.
+
+The second approach used in the thesis focuses on compressing existing models to increase their inference speed. Different quantization techniques were applied to the BERT-Small and BERT-Mini variants. These experiments showed that substantial speedups can be achieved with minimal impact on detection performance.
+
+Experimental results presented in this thesis show that combining both approaches achieves a trade-off between predictive performance and inference speed.

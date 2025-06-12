@@ -1,0 +1,37 @@
+# LaTeX compilation output
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.log
+*.lof
+*.lol
+*.lot
+*.out
+*.run.xml
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+
+# Temporary files
+*.tmp
+*.bak
+*.sav
+*.swp
+*.swo
+*.dvi
+
+# PDFX and metadata files
+creationdate.*
+pdfa.xmpi
+
+# Editor-specific files
+.vscode/
+.idea/
+*.code-workspace
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+desktop.ini

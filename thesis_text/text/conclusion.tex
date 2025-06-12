@@ -1,0 +1,19 @@
+\chapter*{Conclusion}\addcontentsline{toc}{chapter}{Conclusion}\markboth{Conclusion}{Conclusion}
+
+The problem of malicious URL detection was studied and summarized. A literature review of traditional and deep learning-based methods focused on transformer models and compression techniques. Representative models from related work, including BERT-Small, were selected and re-evaluated to establish baseline results on public and private datasets.
+
+Prior to experimentation, the datasets were thoroughly analyzed. Significant differences between real-world data and publicly available datasets were observed.
+
+Models for method compression were described and applied to different variants of BERT models, achieving significant throughput improvements with minimal impact on predictive performance.
+
+A new domain masking augmentation method, which improves model generalization ability, was proposed and evaluated. Additionally, better hyper-parameters for smaller BERT models were identified through ablation studies.
+
+The final model was chosen to be BERT-Mini enhanced by domain masking, optimized hyper-parameters, and Float16 quantization. It successfully outperformed the BERT-Small baseline in both recall and throughput. This model achieved a 9.5x speedup while maintaining a comparable F1 score, thereby improving the detection capabilities for malicious URLs.
+
+For future work, several directions can be considered:
+\begin{itemize}
+    \item Investigating more aggressive static quantization techniques, including lower-precision formats and broader operation coverage.
+    \item Applying domain masking to the BERT-Small model in combination with advanced quantization methods.
+    \item Distilling more advanced architectures from related work like CharBERT into smaller, faster models.
+    \item Combining BERT-based models with feature-based classifiers, where BERT outputs serve as additional features.
+\end{itemize}

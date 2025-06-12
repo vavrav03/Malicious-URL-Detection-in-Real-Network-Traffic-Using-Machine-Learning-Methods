@@ -1,0 +1,50 @@
+# name: bp-env
+# channels:
+#   - conda-forge
+#   - defaults
+# dependencies:
+#   - python=3.10.12
+#   - transformers=4.36.1
+#   - pytorch=2.0.1+cu118
+#   - mlflow=2.9.2
+#   - numpy=1.23.5
+#   - pandas=1.5.3
+#   - scikit-learn==1.1.1
+#   - python-dotenv
+#   - tqdm
+#   - pip==22.3.1
+#   - torchvision==0.15.2
+#   - onnxruntime==1.17.0
+#   - onnx
+#   # - onnxruntime-transformers
+#   - pip:
+#       - ipykernel
+
+
+name: bp-env-cpu2
+channels:
+  - conda-forge
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.10.12
+  - pytorch=2.0.1
+  - cpuonly
+  - torchvision=0.15.2
+  - transformers=4.36.1
+  - mlflow=2.9.2
+  - numpy=1.23.5
+  - pandas=1.5.3
+  - scikit-learn=1.1.1
+  - matplotlib
+  - onnx==1.16.2
+  - onnxruntime=1.17.0
+  - python-dotenv
+  - tqdm
+  - pip=22.3.1
+  - xgboost=2.1.1
+  - pip:
+      - tensorflow==2.14.0
+      - keras==2.14.0
+      - tldextract
+      - ipykernel

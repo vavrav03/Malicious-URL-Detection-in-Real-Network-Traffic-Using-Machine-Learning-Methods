@@ -1,0 +1,17 @@
+# torch
+# onnx==1.13.1
+tritonclient[all]
+nvidia-pyindex
+# numpy==1.23.5
+# requests
+# transformers
+# sentencepiece
+# sympy
+# coloredlogs
+# colored
+black[jupyter]
+# isort
+# flake8
+onnxoptimizer
+# packaging
+protobuf==3.20.3

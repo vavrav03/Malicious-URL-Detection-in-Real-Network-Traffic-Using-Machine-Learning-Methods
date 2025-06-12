@@ -1,0 +1,176 @@
+{
+  "feature_importance": [
+    {
+      "feature": "num_subdomains",
+      "importance": 0.9392305534697462
+    },
+    {
+      "feature": "path_special_char_cnt",
+      "importance": 0.7815934566474055
+    },
+    {
+      "feature": "subdomain_dot_cnt",
+      "importance": 0.7551901112085702
+    },
+    {
+      "feature": "urlentropy",
+      "importance": 0.5283050949820288
+    },
+    {
+      "feature": "length",
+      "importance": 0.4238810752964251
+    },
+    {
+      "feature": "query_total_len",
+      "importance": 0.39741265133036946
+    },
+    {
+      "feature": "path_subdir_cnt",
+      "importance": 0.3973513216275731
+    },
+    {
+      "feature": "non_alnum_cnt",
+      "importance": 0.3080644042784864
+    },
+    {
+      "feature": "num_digits",
+      "importance": 0.2550024428719727
+    },
+    {
+      "feature": "num_question_marks",
+      "importance": 0.24569973972218165
+    },
+    {
+      "feature": "sld_num_digits",
+      "importance": 0.20566539075562784
+    },
+    {
+      "feature": "hyphen_cnt",
+      "importance": 0.19890277078637963
+    },
+    {
+      "feature": "num_semicolons",
+      "importance": 0.19682892041275893
+    },
+    {
+      "feature": "urlkolmogorov_complexity_cplx",
+      "importance": 0.19016071655007324
+    },
+    {
+      "feature": "path_has_upper_dirs",
+      "importance": 0.18538095740782481
+    },
+    {
+      "feature": "path_upper_lower_ratio",
+      "importance": 0.17041712369953635
+    },
+    {
+      "feature": "sld_contains_ip",
+      "importance": 0.16862450831131867
+    },
+    {
+      "feature": "kw_verify",
+      "importance": 0.16534084196376997
+    },
+    {
+      "feature": "num_ampersands",
+      "importance": 0.14728114509716644
+    },
+    {
+      "feature": "sld_non_alnum_cnt",
+      "importance": 0.14552355095096894
+    },
+    {
+      "feature": "kw_login",
+      "importance": 0.141647877739121
+    },
+    {
+      "feature": "digit_letter_ratio",
+      "importance": 0.13545906308044572
+    },
+    {
+      "feature": "kw_bank",
+      "importance": 0.11610219451716708
+    },
+    {
+      "feature": "sld_length",
+      "importance": 0.110829311803188
+    },
+    {
+      "feature": "num_underscores",
+      "importance": 0.10031724463792602
+    },
+    {
+      "feature": "sld_hyphen_cnt",
+      "importance": 0.07974602169316967
+    },
+    {
+      "feature": "tld_is_suspicious",
+      "importance": 0.06962989938680851
+    },
+    {
+      "feature": "num_equals",
+      "importance": 0.06914878675000803
+    },
+    {
+      "feature": "kw_confirm",
+      "importance": 0.06860095247216401
+    },
+    {
+      "feature": "kw_cmd",
+      "importance": 0.06247396962533247
+    },
+    {
+      "feature": "path_zero_cnt",
+      "importance": 0.06135937900336308
+    },
+    {
+      "feature": "query_cnt",
+      "importance": 0.060231801026355274
+    },
+    {
+      "feature": "kw_update",
+      "importance": 0.05758506502320541
+    },
+    {
+      "feature": "at_cnt",
+      "importance": 0.05614566674385812
+    },
+    {
+      "feature": "query_var_cnt",
+      "importance": 0.04434219283509463
+    },
+    {
+      "feature": "path_contains_%20",
+      "importance": 0.028769410667826133
+    },
+    {
+      "feature": "kw_challenge",
+      "importance": 0.02855991265065398
+    },
+    {
+      "feature": "kw_account",
+      "importance": 0.023820890180184472
+    },
+    {
+      "feature": "path_has_singlechar_dir",
+      "importance": 0.019017215595963338
+    },
+    {
+      "feature": "path_double_slash_cnt",
+      "importance": 0.01738591132254503
+    },
+    {
+      "feature": "kw_redirect",
+      "importance": 0.015289091242060753
+    },
+    {
+      "feature": "kw_secure",
+      "importance": 0.012503696655139465
+    },
+    {
+      "feature": "sld_at_cnt",
+      "importance": 0.0
+    }
+  ]
+}

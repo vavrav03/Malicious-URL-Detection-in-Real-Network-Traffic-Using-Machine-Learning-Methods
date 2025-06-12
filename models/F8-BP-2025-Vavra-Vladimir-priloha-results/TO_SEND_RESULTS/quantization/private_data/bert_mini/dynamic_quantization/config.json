@@ -1,0 +1,9 @@
+{
+  "weight_type": "QInt8",
+  "op_types_to_quantize": [
+    "MatMul",
+    "Gemm"
+  ],
+  "reduce_range": true,
+  "per_channel": true
+}

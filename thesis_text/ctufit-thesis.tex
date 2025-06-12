@@ -1,0 +1,264 @@
+%% This is the ctufit-thesis example file. It is used to produce theses
+%% for submission to Czech Technical University, Faculty of Information Technology.
+%%
+%% This is version 1.5.7, built 13. 5. 2025.
+%% 
+%% Get the newest version from
+%% https://gitlab.fit.cvut.cz/theses-templates/FITthesis-LaTeX
+%%
+%%
+%% Copyright 2024, Tomas Novacek
+%% Copyright 2021, Eliska Sestakova and Ondrej Guth
+%%
+%% This work may be distributed and/or modified under the
+%% conditions of the LaTeX Project Public License, either version 1.3
+%% of this license or (at your option) any later version.
+%% The latest version of this license is in
+%%  https://www.latex-project.org/lppl.txt
+%% and version 1.3 or later is part of all distributions of LaTeX
+%% version 2005/12/01 or later.
+%%
+%% This work has the LPPL maintenance status `maintained'.
+%%
+%% The current maintainer of this work is Tomas Novacek (novacto3@fit.cvut.cz).
+%% Alternatively, submit bug reports to the tracker at
+%% https://gitlab.fit.cvut.cz/theses-templates/FITthesis-LaTeX/issues
+%%
+%%
+
+% arara: xelatex
+% arara: biber
+% arara: xelatex
+% arara: xelatex
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CLASS OPTIONS
+% language: czech/english/slovak
+% thesis type: bachelor/master/dissertation
+% electronic (oneside) or printed (twoside), twoside is default
+% paragraph - if passed, this optional argument sets paragraphs as the deepest level of headers, styles it, numbers it and adds it to Table of Content. Use with care! Normally, it is considered unwise to use it, since it is too deep.
+% colour: bw for black&white OR no option for default colour scheme
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[english,bachelor,bw,unicode,oneside]{ctufit-thesis}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FILL IN THIS INFORMATION
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\ctufittitle{Malicious URL Detection in Real Network Traffic Using Machine Learning Methods}
+\ctufitauthorfull{Vladimír Vávra}
+\ctufitauthorsurnames{Vávra}
+\ctufitauthorgivennames{Vladimír}
+\ctufitsupervisor{Ing. Jaroslav Hlaváč}
+\ctufitdepartment{Department of Applied Mathematics}
+\ctufitprogram{Informatics} % replace with your study program
+\ctufitspecialisation{Umělá inteligence}
+\ctufityear{2025}
+\ctufitdeclarationplace{Prague} % replace with the place where you sign the declaration
+\ctufitdeclarationdate{\today} % replace with the date of signature of the declaration
+\ctufitabstractENG{This thesis addresses malicious URL detection using only the URL string, aiming to develop a model faster than the BERT-Small baseline while maintaining comparable predictive performance. 
+
+Experiments were conducted on both publicly available datasets and a private dataset collected from a real computer network. A thorough analysis of the datasets and a detailed description of methods for malicious URL detection are provided prior to proposing the final solution. Two complementary approaches were combined to achieve the best results.
+
+The first one involves training smaller models, optimizing their hyper-parameters and proposing a new augmentation method -- domain masking, which prevents model from memorizing specific second level domain names and forces it to focus on general string features.
+
+To further improve inference speed, model compression techniques, such as static quantization, computation in Float16, were applied. The resulting BERT-Mini model with Float16 and domain masking surpassed the BERT-Small baseline in recall and achieved a 9.5x throughput improvement.}
+\ctufitabstractCZE{Tato práce se zabývá detekcí škodlivých URL pouze na základě samotného textového řetězce URL, přičemž cílem je vyvinout model rychlejší než referenční BERT-Small, avšak srovnatelný z hlediska relevantních metrik.
+
+Experimenty byly provedeny jak na veřejně dostupných datasetech, tak na soukromém datasetu sesbíraném z reálné počítačové sítě. Před představením finálního řešení je uvedena důkladná analýza datasetů a podrobný popis metod pro detekci škodlivých URL. Pro dosažení nejlepších výsledků byly zkombinovány dva vzájemně se doplňující přístupy.
+
+Prvním přístupem bylo trénování menších modelů, optimalizace jejich hyperparametrů a návrh nové augmentační metody -- maskování domén, která zabraňuje modelu zapamatovávat si konkrétní názvy druhých úrovní domén a nutí jej soustředit se na obecné charakteristiky řetězce.
+
+Pro další zrychlení inferencí byly aplikovány metody komprese modelu, jako je statická kvantizace a výpočty ve formátu Float16. Výsledný model BERT-Mini s Float16 a maskováním domén překonal referenční BERT-Small v hodnotě recall a dosáhl 9,5násobného zrychlení propustnosti.}
+\ctufitkeywordsCZE{detekce škodlivých URL, klasifikace URL na základě URL řetězců, BERT, augmentace pomocí maskování domén, kvantizace, PyTorch, ONNX Runtime, optimalizace propustnosti}
+\ctufitkeywordsENG{malicious URL detection, URL-string based classification, BERT, domain masking augmentation, quantization, PyTorch, ONNX Runtime, throughput optimization, fine-tuning}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% END FILL IN
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CUSTOMIZATION of this template
+% Skip this part or alter it if you know what you are doing.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage{iftex}[2020/03/06]
+\iftutex % XeLaTeX and LuaLaTeX
+    \RequirePackage{ellipsis}[2020/05/22] %ellipsis workaround for XeLaTeX
+\else
+    \errmessage{Only compilation with XeLaTeX or LuaLaTeX is allowed}
+    \stop
+\fi
+
+% hyperlinks
+\hypersetup{
+    pdfpagelayout=TwoPageRight,
+    colorlinks=false,
+    allcolors=decoration,
+    pdfborder={0 0 0.1}
+}
+
+\raggedbottom
+
+% uncomment the following to hide all hyperlinks
+%\hypersetup{hidelinks}
+
+% uncomment the following to change the colour of all hyperlinks to CTU blue
+%\hypersetup{allbordercolors=decoration}
+
+\RequirePackage{pdfpages}[2020/01/28]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CUSTOMIZATION of this template END
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%
+% PACKAGES SETTINGS
+% You may choose to modify this part.
+%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{dirtree}
+\usepackage{lipsum,tikz}
+\usepackage[style=iso-numeric,sorting=none]{biblatex}
+\addbibresource{text/bib-database.bib}
+\usepackage{xurl}
+\usepackage{listings} % typesetting of sources
+%\usepackage{minted}
+\usepackage{csquotes}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{float}
+\lstset{
+  breaklines=true,
+  basicstyle=\ttfamily
+}
+\newcommand{\wrappedttt}[1]{\lstinline!#1!}
+
+%%%%%%%%%%%%%%%%%%%%%%
+% DEMO CONTENTS SETTINGS END
+%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\frontmatter\frontmatterinit % do not remove these two commands
+
+\includepdf[pages={1-}]{vavravl3-assignment.pdf} % replace this file with your thesis assignment generated from ProjectsFIT
+
+\thispagestyle{empty}\maketitle\thispagestyle{empty}\cleardoublepage % do not remove these four commands
+
+
+\interfootnotelinepenalty=10000
+\imprintpage % do not remove this command
+\stopTOCentries
+%%%%%%%%%%%%%%%%%%%%%%
+% list of other contents END
+%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%
+% ACKNOWLEDGMENT
+% FILL IN / MODIFY
+% This is a place to thank people for helping you. It is common to thank your supervisor.
+%%%%%%%%%%%%%%%%%%%
+\begin{acknowledgmentpage}
+    I would like to express my gratitude to my thesis supervisor, Ing. Jaroslav Hlaváč, for his guidance and valuable feedback throughout the development of this bachelor's thesis.
+
+    I would also like to thank Cisco Systems for providing the computing resources required to carry out the experiments.
+\end{acknowledgmentpage}
+%%%%%%%%%%%%%%%%%%%
+% ACKNOWLEDGMENT END
+%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%
+% DECLARATION
+% FILL IN / MODIFY
+%%%%%%%%%%%%%%%%%%%
+% INSTRUCTIONS
+% ENG: choose one of approved texts of the declaration. DO NOT CREATE YOUR OWN. Find the approved texts at https://courses.fit.cvut.cz/SFE/download/index.html#_documents (document Declaration for FT in English)
+% CZE/SLO: Vyberte jedno z fakultou schvalenych prohlaseni. NEVKLADEJTE VLASTNI TEXT. Schvalena prohlaseni najdete zde: https://courses.fit.cvut.cz/SZZ/dokumenty/index.html#_dokumenty (prohlášení do ZP)
+\begin{declarationpage}
+    I hereby declare that the presented thesis is my own work and that I have cited all sources of information in accordance with the Guideline for adhering to ethical principles when elaborating an academic final thesis.
+    I acknowledge that my thesis is subject to the rights and obligations stipulated by the Act No. 121/2000 Coll., the Copyright Act, as amended. In accordance with Section 2373(2) of Act No. 89/2012 Coll., the Civil Code, as amended, I hereby grant a non-exclusive authorization (licence) to utilize this thesis, including all computer programs that are part of it or attached to it and all documentation thereof (hereinafter collectively referred to as the "Work"), to any and all persons who wish to use the Work. Such persons are entitled to use the Work in any manner that does not diminish the value of the Work and for any purpose (including use for profit). This authorisation is unlimited in time, territory and quantity.
+
+    I declare that I have used AI tools during the preparation and writing of my thesis. I have verified the generated content. I confirm that I am aware that I am fully responsible for the content of the thesis.
+\end{declarationpage}
+%%%%%%%%%%%%%%%%%%%
+% DECLARATION END
+%%%%%%%%%%%%%%%%%%%
+
+% Use one of the two following commands. The first prints abstracts+keywords on two pages, the second puts them on one page (if possible). \printonepageabstract can also accept optional argument that specifies a vertical space before both abstracts (the default is 18 mm).
+\printtwopageabstract
+%\printonepageabstract 
+
+%%%%%%%%%%%%%%%%%%%
+% SUMMARY
+% FILL IN / MODIFY
+% OR REMOVE ENTIRELY (upon agreement with your supervisor)
+% (appropriate to remove in most theses)
+%%%%%%%%%%%%%%%%%%%
+% \begin{summarypage}
+% \section*{Summary section}
+% 
+% \lipsum[1][1-8]
+% 
+% \section*{Summary section}
+% 
+% \lipsum[2][1-6]
+% 
+% \section*{Summary section}
+% 
+% \lipsum[3]
+% 
+% \section*{Summary section}
+% 
+% \lipsum[2]
+% 
+% \section*{Summary section}
+% 
+% \lipsum[1][1-8] Lorem lorem lorem.
+% \end{summarypage}
+%%%%%%%%%%%%%%%%%%%
+% SUMMARY END
+%%%%%%%%%%%%%%%%%%%
+
+\tableofcontents % do not remove this command
+%%%%%%%%%%%%%%%%%%%%%%
+% list of other contents: figures, tables, code listings, algorithms, etc.
+% add/remove commands accordingly
+%%%%%%%%%%%%%%%%%%%%%%
+\listoffigures % list of figures
+\begingroup
+\let\clearpage\relax
+\listoftables % list of tables
+% \thectufitlistingscommand
+\endgroup
+
+\resumeTOCentries
+\mainmatter\mainmatterinit % do not remove these two commands
+%%%%%%%%%%%%%%%%%%%
+% THE THESIS
+% MODIFY ANYTHING BELOW THIS LINE
+%%%%%%%%%%%%%%%%%%%
+
+\setcounter{page}{1}
+
+\include{text/introduction}
+
+\include{text/problem_description}
+
+\include{text/related_work}
+
+\include{text/datasets}
+
+\include{text/experiments}
+
+\include{text/conclusion}
+
+\appendix\appendixinit % do not remove these two commands
+
+% \include{text/appendix} % include `appendix.tex' from `text/' subdirectory
+
+\backmatter % do not remove this command
+
+\printbibliography % print out the BibLaTeX-generated bibliography list
+
+\include{text/medium} % include `medium.tex' from `text/' subdirectory
+
+\end{document}

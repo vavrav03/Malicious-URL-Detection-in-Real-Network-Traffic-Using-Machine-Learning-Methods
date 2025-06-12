@@ -1,0 +1,12 @@
+{
+  "time_n_per_s_total_with_tokenizer": 58.25403986723411,
+  "time_n_per_s_total_without_tokenizer": 59.522068725016304,
+  "time_n_per_s_forward_with_softmax": 59.58523187931857,
+  "time_n_per_s_forward_without_softmax_with_moving": 59.58875938511757,
+  "time_n_per_s_forward_without_softmax": 59.58973208274695,
+  "time_s_per_1_total_with_tokenizer": 0.017166191431170864,
+  "time_s_per_1_total_without_tokenizer": 0.01680049133742077,
+  "time_s_per_1_forward_with_softmax": 0.01678268202472314,
+  "time_s_per_1_forward_without_softmax": 0.016781414600276927,
+  "time_s_per_1_forward_without_softmax_with_moving": 0.016781688531843347
+}

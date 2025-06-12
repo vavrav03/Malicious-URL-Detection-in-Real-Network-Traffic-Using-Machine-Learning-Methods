@@ -1,0 +1,498 @@
+{
+  "eval_0_f1-score": {
+    "last": 0.9737866237391436,
+    "max": 0.9737866237391436,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.9086293777490521,
+        "timestamp": 1746179345765
+      },
+      {
+        "step": 1,
+        "value": 0.9737866237391436,
+        "timestamp": 1746180532956
+      }
+    ]
+  },
+  "eval_0_precision": {
+    "last": 0.965734008610976,
+    "max": 0.965734008610976,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.864146115383109,
+        "timestamp": 1746179345710
+      },
+      {
+        "step": 1,
+        "value": 0.965734008610976,
+        "timestamp": 1746180532903
+      }
+    ]
+  },
+  "eval_0_recall": {
+    "last": 0.9819746588740976,
+    "max": 0.9819746588740976,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.9579408707062277,
+        "timestamp": 1746179345738
+      },
+      {
+        "step": 1,
+        "value": 0.9819746588740976,
+        "timestamp": 1746180532930
+      }
+    ]
+  },
+  "eval_0_support": {
+    "last": 414583.0,
+    "max": 414583.0,
+    "history": [
+      {
+        "step": 0,
+        "value": 414583.0,
+        "timestamp": 1746179345790
+      },
+      {
+        "step": 1,
+        "value": 414583.0,
+        "timestamp": 1746180532981
+      }
+    ]
+  },
+  "eval_1_f1-score": {
+    "last": 0.9289668135856883,
+    "max": 0.9289668135856883,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.7047569058118602,
+        "timestamp": 1746179345864
+      },
+      {
+        "step": 1,
+        "value": 0.9289668135856883,
+        "timestamp": 1746180533059
+      }
+    ]
+  },
+  "eval_1_precision": {
+    "last": 0.9504423252914572,
+    "max": 0.9504423252914572,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.8453714295848963,
+        "timestamp": 1746179345815
+      },
+      {
+        "step": 1,
+        "value": 0.9504423252914572,
+        "timestamp": 1746180533006
+      }
+    ]
+  },
+  "eval_1_recall": {
+    "last": 0.9084403483640328,
+    "max": 0.9084403483640328,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.6042493312881102,
+        "timestamp": 1746179345840
+      },
+      {
+        "step": 1,
+        "value": 0.9084403483640328,
+        "timestamp": 1746180533034
+      }
+    ]
+  },
+  "eval_1_support": {
+    "last": 157766.0,
+    "max": 157766.0,
+    "history": [
+      {
+        "step": 0,
+        "value": 157766.0,
+        "timestamp": 1746179345889
+      },
+      {
+        "step": 1,
+        "value": 157766.0,
+        "timestamp": 1746180533091
+      }
+    ]
+  },
+  "eval_accuracy": {
+    "last": 0.9617051833758773,
+    "max": 0.9617051833758773,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.8604470349384729,
+        "timestamp": 1746179345916
+      },
+      {
+        "step": 1,
+        "value": 0.9617051833758773,
+        "timestamp": 1746180533117
+      }
+    ]
+  },
+  "eval_average_loss": {
+    "last": 0.015114904173651097,
+    "max": 0.041045911583053166,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.041045911583053166,
+        "timestamp": 1746179346330
+      },
+      {
+        "step": 1,
+        "value": 0.015114904173651097,
+        "timestamp": 1746180533532
+      }
+    ]
+  },
+  "eval_best_decision_threshold": {
+    "last": 0.5151515151515152,
+    "max": 0.5151515151515152,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.4141414141414142,
+        "timestamp": 1746179346304
+      },
+      {
+        "step": 1,
+        "value": 0.5151515151515152,
+        "timestamp": 1746180533506
+      }
+    ]
+  },
+  "eval_fn": {
+    "last": 14445.0,
+    "max": 62436.0,
+    "history": [
+      {
+        "step": 0,
+        "value": 62436.0,
+        "timestamp": 1746179346222
+      },
+      {
+        "step": 1,
+        "value": 14445.0,
+        "timestamp": 1746180533429
+      }
+    ]
+  },
+  "eval_fp": {
+    "last": 7473.0,
+    "max": 17437.0,
+    "history": [
+      {
+        "step": 0,
+        "value": 17437.0,
+        "timestamp": 1746179346196
+      },
+      {
+        "step": 1,
+        "value": 7473.0,
+        "timestamp": 1746180533403
+      }
+    ]
+  },
+  "eval_fpr": {
+    "last": 0.018025341125902414,
+    "max": 0.0420591292937723,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.0420591292937723,
+        "timestamp": 1746179346250
+      },
+      {
+        "step": 1,
+        "value": 0.018025341125902414,
+        "timestamp": 1746180533455
+      }
+    ]
+  },
+  "eval_macro avg_f1-score": {
+    "last": 0.951376718662416,
+    "max": 0.951376718662416,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.8066931417804561,
+        "timestamp": 1746179345992
+      },
+      {
+        "step": 1,
+        "value": 0.951376718662416,
+        "timestamp": 1746180533191
+      }
+    ]
+  },
+  "eval_macro avg_precision": {
+    "last": 0.9580881669512167,
+    "max": 0.9580881669512167,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.8547587724840027,
+        "timestamp": 1746179345941
+      },
+      {
+        "step": 1,
+        "value": 0.9580881669512167,
+        "timestamp": 1746180533141
+      }
+    ]
+  },
+  "eval_macro avg_recall": {
+    "last": 0.9452075036190652,
+    "max": 0.9452075036190652,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.781095100997169,
+        "timestamp": 1746179345967
+      },
+      {
+        "step": 1,
+        "value": 0.9452075036190652,
+        "timestamp": 1746180533165
+      }
+    ]
+  },
+  "eval_macro avg_support": {
+    "last": 572349.0,
+    "max": 572349.0,
+    "history": [
+      {
+        "step": 0,
+        "value": 572349.0,
+        "timestamp": 1746179346020
+      },
+      {
+        "step": 1,
+        "value": 572349.0,
+        "timestamp": 1746180533217
+      }
+    ]
+  },
+  "eval_roc_auc_score": {
+    "last": 0.9871684162460687,
+    "max": 0.9871684162460687,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.9195239684986979,
+        "timestamp": 1746179346276
+      },
+      {
+        "step": 1,
+        "value": 0.9871684162460687,
+        "timestamp": 1746180533481
+      }
+    ]
+  },
+  "eval_tn": {
+    "last": 407110.0,
+    "max": 407110.0,
+    "history": [
+      {
+        "step": 0,
+        "value": 397146.0,
+        "timestamp": 1746179346171
+      },
+      {
+        "step": 1,
+        "value": 407110.0,
+        "timestamp": 1746180533377
+      }
+    ]
+  },
+  "eval_tp": {
+    "last": 143321.0,
+    "max": 143321.0,
+    "history": [
+      {
+        "step": 0,
+        "value": 95330.0,
+        "timestamp": 1746179346146
+      },
+      {
+        "step": 1,
+        "value": 143321.0,
+        "timestamp": 1746180533349
+      }
+    ]
+  },
+  "eval_weighted avg_f1-score": {
+    "last": 0.961432199832279,
+    "max": 0.961432199832279,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.8524326439246844,
+        "timestamp": 1746179346097
+      },
+      {
+        "step": 1,
+        "value": 0.961432199832279,
+        "timestamp": 1746180533293
+      }
+    ]
+  },
+  "eval_weighted avg_precision": {
+    "last": 0.9615189095881994,
+    "max": 0.9615189095881994,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.8589709389092428,
+        "timestamp": 1746179346046
+      },
+      {
+        "step": 1,
+        "value": 0.9615189095881994,
+        "timestamp": 1746180533240
+      }
+    ]
+  },
+  "eval_weighted avg_recall": {
+    "last": 0.9617051833758773,
+    "max": 0.9617051833758773,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.8604470349384729,
+        "timestamp": 1746179346072
+      },
+      {
+        "step": 1,
+        "value": 0.9617051833758773,
+        "timestamp": 1746180533268
+      }
+    ]
+  },
+  "eval_weighted avg_support": {
+    "last": 572349.0,
+    "max": 572349.0,
+    "history": [
+      {
+        "step": 0,
+        "value": 572349.0,
+        "timestamp": 1746179346122
+      },
+      {
+        "step": 1,
+        "value": 572349.0,
+        "timestamp": 1746180533319
+      }
+    ]
+  },
+  "time_n_per_s_forward_with_softmax": {
+    "last": 9969.353681497161,
+    "max": 9969.353681497161,
+    "history": [
+      {
+        "step": 0,
+        "value": 9969.353681497161,
+        "timestamp": 1746184128590
+      }
+    ]
+  },
+  "time_n_per_s_forward_without_softmax": {
+    "last": 10093.42547580022,
+    "max": 10093.42547580022,
+    "history": [
+      {
+        "step": 0,
+        "value": 10093.42547580022,
+        "timestamp": 1746184128700
+      }
+    ]
+  },
+  "time_n_per_s_total_with_tokenizer": {
+    "last": 3963.611200332571,
+    "max": 3963.611200332571,
+    "history": [
+      {
+        "step": 0,
+        "value": 3963.611200332571,
+        "timestamp": 1746184128343
+      }
+    ]
+  },
+  "time_n_per_s_total_without_tokenizer": {
+    "last": 9732.492353381898,
+    "max": 9732.492353381898,
+    "history": [
+      {
+        "step": 0,
+        "value": 9732.492353381898,
+        "timestamp": 1746184128471
+      }
+    ]
+  },
+  "time_s_per_1_forward_with_softmax": {
+    "last": 0.00010030740526900672,
+    "max": 0.00010030740526900672,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.00010030740526900672,
+        "timestamp": 1746184129059
+      }
+    ]
+  },
+  "time_s_per_1_forward_without_softmax": {
+    "last": 9.907439277156982e-05,
+    "max": 9.907439277156982e-05,
+    "history": [
+      {
+        "step": 0,
+        "value": 9.907439277156982e-05,
+        "timestamp": 1746184129190
+      }
+    ]
+  },
+  "time_s_per_1_total_with_tokenizer": {
+    "last": 0.00025229517968767824,
+    "max": 0.00025229517968767824,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.00025229517968767824,
+        "timestamp": 1746184128823
+      }
+    ]
+  },
+  "time_s_per_1_total_without_tokenizer": {
+    "last": 0.00010274860371737305,
+    "max": 0.00010274860371737305,
+    "history": [
+      {
+        "step": 0,
+        "value": 0.00010274860371737305,
+        "timestamp": 1746184128943
+      }
+    ]
+  },
+  "train_batch_accuracy": {
+    "last": 0.9609375,
+    "max": 1.0
+  },
+  "train_batch_average_loss": {
+    "last": 0.01055180374532938,
+    "max": 0.07928695529699326
+  }
+}

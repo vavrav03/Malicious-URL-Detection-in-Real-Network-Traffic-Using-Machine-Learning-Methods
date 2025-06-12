@@ -1,0 +1,11 @@
+onnxruntime-gpu==1.13.1
+nvidia-tensorrt==8.4.1.5
+onnx_graphsurgeon
+polygraphy
+cupy-cuda117
+
+protobuf==3.20.3
+onnxoptimizer
+tritonclient[all]
+nvidia-pyindex
+# nvidia-tensorrt

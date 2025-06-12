@@ -1,0 +1,556 @@
+\chapter{Experiments}
+
+This chapter presents the results of all the experiments that were conducted. It begins with an overview of the evaluation metrics used for evaluating all the models. The following section compares several baseline models introduced in the related work chapter~\ref{sec:related_work}, establishing a performance reference for subsequent experiments. The final two sections correspond to the two main approaches outlined in the introduction: designing smaller and faster models that can match the Performance of the baseline and compressing existing models using quantization techniques to increase inference speed.
+
+All experiments were conducted on Databricks Runtime 14.3 ML LTS using a g4dn.xlarge virtual machine with 4 vCPUs, 16~GB of RAM, and an NVIDIA T4 GPU. The libraries used for experiments and their respective versions are detailed in requirements files in the repository. The core ones include PyTorch, Torchvision, Hugging Face Transformers, Scikit-learn, NumPy, Pandas, and MLflow, ONNX Runtime.
+
+In the baseline comparison, all datasets are used, but later experiments focus only on the Private and Joined datasets to reduce computing and avoid issues of individual datasets outlined in Section~\ref{sec:dataset_descriptions}. While one might argue that including all datasets would improve comparability with related work, this is not valid, as prior work does not apply domain-aware folding, which makes direct comparison unreliable.
+
+\section{Metrics}
+\label{sec:metrics}
+This section first describes the metrics used to evaluate predictive Performance (Table~\ref{tab:metric_formulas}), followed by those used to measure inference speed.
+
+Let $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^{N}$ denote the evaluation set, where $x_i$ is URL, $y_i \in \{0, 1\}$ is the ground truth label, $N$ is the dataset size and $\hat{y}_i$ is the predicted class $c \in C$, where $C$ is set of all available classes. Each model outputs a probability score $s_i \in [0, 1]$ for each class, representing the likelihood that the sample belongs to that class. In multi-class classification, the predicted class is the one with the highest probability: $\hat{y}_i = \arg\max_c s_{i,c}$. In binary classification, predictions are obtained by applying a decision threshold $t$ (unless otherwise specified, the default threshold is $t = 0.5$):
+
+$$
+    \hat{y}_i =
+    \begin{cases}
+        1 & \text{if } s_i \geq t \\
+        0 & \text{otherwise}
+    \end{cases}
+$$
+
+
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \setlength{\tabcolsep}{10pt}
+    \begin{tabular}{lp{0.7\textwidth}}
+        \toprule
+        \textbf{Metric}            & \textbf{Formula}                                                                                                        \\
+        \midrule
+        True Positive (class $c$)  & $\mathrm{TP}_c = \sum_{i}\mathbf{1}\{\hat{y}_i = c \wedge y_i = c\}$                                                    \\
+        False Positive (class $c$) & $\mathrm{FP}_{(c)} = \sum_{i}\mathbf{1}\{\hat{y}_i = c \wedge y_i \neq c\}$                                             \\
+        False Negative (class $c$) & $\mathrm{FN}_{(c)} = \sum_{i}\mathbf{1}\{\hat{y}_i \neq c \wedge y_i = c\}$                                             \\
+        Accuracy                   & $\mathrm{Accuracy} = \frac{1}{N} \sum_{i} \mathbf{1}\{ \hat{y}_i = y_i \}$                                              \\
+        Recall (class $c$)         & $\mathrm{Rec}_{(c)} = \mathrm{TP}_{(c)} / (\mathrm{TP}_{(c)} + \mathrm{FN}_{(c)})$                                      \\
+        Precision (class $c$)      & $\mathrm{Prec}_{(c)} = \mathrm{TP}_{(c)} / (\mathrm{TP}_{(c)} + \mathrm{FP}_{(c)})$                                     \\
+        F1 Score (class $c$)       & $\mathrm{F1}_{(c)} = 2 \cdot \mathrm{Prec}_{(c)} \cdot \mathrm{Rec}_{(c)} / (\mathrm{Prec}_{(c)} + \mathrm{Rec}_{(c)})$ \\
+        \midrule
+        F1 Score (class $1$)       & $\mathrm{F1}_{(1)} = 2 \cdot \mathrm{Prec}_{(1)} \cdot \mathrm{Rec}_{(1)} / (\mathrm{Prec}_{(1)} + \mathrm{Rec}_{(1)})$ \\
+        Recall (class 1)           & $\mathrm{Rec}_{(1)} = \mathrm{TP}_{(1)} / (\mathrm{TP}_{(1)} + \mathrm{FN}_{(1)})$                                      \\
+        Precision (class 1)        & $\mathrm{Prec}_{(1)} = \mathrm{TP}_{(1)} / (\mathrm{TP}_{(1)} + \mathrm{FP}_{(1)})$                                     \\
+        Macro F1 Score             & $F1_{\text{macro}} = (F1_{(0)} + F1_{(1)}) / 2$                                                                         \\
+        ROC AUC                    & Area under ROC curve                                                                                                    \\
+        \bottomrule
+    \end{tabular}
+    \caption{Formulas for evaluation metrics. The upper portion of the table lists auxiliary metrics provided for completeness, while the lower portion includes the primary metrics used in the experiments.}
+    \label{tab:metric_formulas}
+\end{table}
+
+As described in Section~\ref{sec:real_world_pipeline}. The foremost requirement is to catch as many malicious URLs as possible. The ability of the model to do that is expressed by the recall for the malicious class. Precision for the malicious class is the second critical measure: if it becomes too low, the expensive downstream model is used unnecessarily often. The metric describing how the model balances these two is F1 for the malicious class. Should the F1 score be similar for multiple models, we should prioritize the one with higher recall.
+
+ROC-AUC is another useful metric that provides a threshold-independent evaluation of a model's ability to distinguish between classes. Unlike precision or recall, which depend on a specific decision threshold, ROC-AUC summarizes the trade-off between the true positive rate and false positive rate across all possible thresholds in a ROC curve. The last metric that is shown in comparisons is the macro F1 score.
+
+Additional metrics computed and included in the attached ZIP archive are precision, recall, F1 score, and accuracy for the benign class (class 0), as well as their micro-averaged and weighted variants. Confusion matrices are also provided for all evaluated models.
+
+For each experiment, visualizations of the precision recall and the ROC curves (for class 1) were created to illustrate the model's Performance across different classification thresholds. To keep the attachment file size reasonable, visualizations are included only in selected cases.
+
+When measuring inference speed, there are usually two useful metrics:
+\begin{itemize}
+    \item \textbf{Throughput (Thr.)} -- the number of items processed per second.
+    \item \textbf{Latency (Lat.)} -- the time it takes to process a single input
+\end{itemize}
+
+In the context of this thesis, \textbf{throughput} is the more important metric, as the system is expected to handle large quantities of URLs per second, as described in Section~\ref{sec:real_world_pipeline}. Two throughput values are reported in the experiments:
+\begin{itemize}
+    \item \textbf{Model throughput} -- the number of samples the model alone can process per second, excluding any preprocessing steps. When measuring this metric, it is important to ensure proper synchronization between the GPU and CPUs, as GPU operations are asynchronous by default. Failing to do so may lead to inaccurate or underestimated timing results.
+    \item \textbf{Pipeline throughput} -- throughput of the entire inference pipeline, including Tokenization, feature extraction, and model execution. This component is typically easier to scale, as preprocessing steps often run on CPUs, which are more cost-effective to scale out compared to GPUs. Furthermore, using streaming execution, these operations can be overlapped or parallelized so that their computational cost is minimized.
+\end{itemize}
+
+The final metric that is reported is the total number of parameters for each model on a given dataset. This thesis defines a parameter as any scalar value the model must store to reconstruct itself for inference (e.g.\ weights, biases, split thresholds, leaf values, etc.).
+
+\section{Baselines}
+\label{sec:baselines}
+This section presents the Performance of the selected models from the related work chapter, beginning with evaluations on binary classification datasets and concluding with results on multi-class dataset. Additional information about training setup and interesting details for each model are discussed in their respective subsections.
+
+For the feature-based models, Log. Regression, Naive Bayes, and XGBoost were selected. URLNet was chosen as a representative of non-transformer deep learning approaches. For the transformer baseline, BERT-Small~\cite{turc2019}.
+
+\begin{table}[H]
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{
+            >{\raggedright\arraybackslash}p{3cm}
+            lllllllll
+            }
+            \toprule
+            \textbf{Dataset} & \textbf{Model}
+                             & \textbf{F1$_1$}
+                             & \textbf{Rec$_1$}
+                             & \textbf{Prec$_1$}
+                             & \textbf{Macro-F1}
+                             & \textbf{ROC-AUC}
+                             & \textbf{\shortstack{Thr.                                                                          \\Model}}
+                             & \textbf{\shortstack{Thr.                                                                          \\Pipeline}}
+                             & \textbf{\# params}                                                                                \\
+            \midrule
+
+            GramBeddings
+                             & Log.\ Regression         & 0.8371 & 0.7789 & 0.9048 & 0.8503 & 0.9151 & 50.4 M  & 19.7 K & 44     \\
+                             & Naive Bayes              & 0.7353 & 0.6059 & 0.9349 & 0.7779 & 0.8706 & 1.0 M   & 19.7 K & 88     \\
+                             & XGBoost                  & 0.9095 & 0.8784 & 0.9428 & 0.9140 & 0.9700 & 911.8 K & 19.7 K & 6.9 K  \\
+                             & URLNet                   & 0.9588 & 0.9304 & 0.9890 & 0.9607 & 0.9944 & 1.2 K   & 893    & 20.8 M \\
+                             & BERT-Small               & 0.9662 & 0.9798 & 0.9530 & 0.9664 & 0.9959 & 722     & 641    & 28.8 M \\
+            \addlinespace
+
+            Kaggle Binary
+                             & Log.\ Regression         & 0.8956 & 0.8373 & 0.9626 & 0.9088 & 0.9399 & 53.6 M  & 21.0 K & 44     \\
+                             & Naive Bayes              & 0.4987 & 0.3449 & 0.9001 & 0.6333 & 0.8180 & 1.0 M   & 21.0 K & 88     \\
+                             & XGBoost                  & 0.9222 & 0.9032 & 0.9420 & 0.9295 & 0.9754 & 1.0 M   & 21.0 K & 3.8 K  \\
+                             & URLNet                   & 0.9971 & 0.9957 & 0.9985 & 0.9973 & 0.9998 & 1.2 K   & 894    & 15.6 M \\
+                             & BERT-Small               & 0.9973 & 0.9955 & 0.9992 & 0.9976 & 0.9999 & 963     & 845    & 28.8 M \\
+            \addlinespace
+
+            Mendeley
+                             & Log.\ Regression         & 0.0912 & 0.5174 & 0.0500 & 0.4763 & 0.6981 & 55.3 M  & 25.0 K & 44     \\
+                             & Naive Bayes              & 0.0505 & 0.9647 & 0.0260 & 0.1440 & 0.6763 & 1.0 M   & 25.0 K & 88     \\
+                             & XGBoost                  & 0.1507 & 0.3738 & 0.0944 & 0.5493 & 0.7387 & 501.3 K & 25.0 K & 41.7 K \\
+                             & URLNet                   & 0.6475 & 0.4896 & 0.9557 & 0.8206 & 0.9376 & 1.2 K   & 979    & 32.3 M \\
+                             & BERT-Small               & 0.6980 & 0.5911 & 0.8522 & 0.8460 & 0.9550 & 3.1 K   & 2.6 K  & 28.8 M \\
+            \addlinespace
+
+            Joined
+                             & Log.\ Regression         & 0.7103 & 0.7996 & 0.6389 & 0.8053 & 0.8991 & 60.7 M  & 20.0 K & 44     \\
+                             & Naive Bayes              & 0.5993 & 0.4771 & 0.8055 & 0.7553 & 0.8346 & 923.5 K & 20.0 K & 88     \\
+                             & XGBoost                  & 0.8223 & 0.8406 & 0.8047 & 0.8842 & 0.9488 & 657.3 K & 20.0 K & 18.5 K \\
+                             & URLNet                   & 0.8969 & 0.8321 & 0.9727 & 0.9347 & 0.9786 & 1.6 K   & 982    & 57.9 M \\
+                             & BERT-Small               & 0.9322 & 0.9149 & 0.9501 & 0.9563 & 0.9845 & 731     & 645    & 28.8 M \\
+            \addlinespace
+
+            Private Data
+                             & Log.\ Regression         & 0.3677 & 0.7833 & 0.2402 & 0.6073 & 0.8175 & 48.2 M  & 16.8 K & 44     \\
+                             & Naive Bayes              & 0.1927 & 0.8452 & 0.1087 & 0.3261 & 0.7392 & 901.4 K & 16.8 K & 88     \\
+                             & XGBoost                  & 0.5883 & 0.7891 & 0.4689 & 0.7653 & 0.9226 & 488.4 K & 16.8 K & 9.2 K  \\
+                             & URLNet                   & 0.7555 & 0.6248 & 0.9555 & 0.8678 & 0.9538 & 1.6 K   & 794    & 59.7 M \\
+                             & BERT-Small               & 0.8648 & 0.8103 & 0.9271 & 0.9261 & 0.9599 & 497     & 429    & 28.8 M \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Performance, throughput, and parameter counts of classification models across five binary datasets that use domain-aware folding.}
+    \label{tab:baseline_binary_classification_results}
+\end{table}
+
+Table~\ref {tab:baseline_binary_classification_results} presents a performance summary of the selected baseline models. In terms of $\mathrm{F}1_1$, BERT-Small consistently performs best. URLNet is next, followed by XGBoost and Log. Regression and Naive Bayes. While URLNet typically achieves higher $\mathrm{Prec}_1$ than BERT-Small, its $\mathrm{Rec}_1$, which is a more important metric to maximize (as described in the metrics Section~\ref{sec:metrics}), is worse. Some feature-based models like Naive Bayes seem to have higher $\mathrm{Rec}_1$ than BERT-Small, especially on imbalanced datasets. Still, they struggle with $\mathrm{Prec}_1$, severely limiting their practical usefulness.
+
+As far as datasets are concerned, Kaggle Binary is the easiest. It is balanced and consists of easily separable examples, as the near-perfect Performance suggests across multiple models. GramBeddings dataset, while also balanced, is slightly more challenging but still solvable with high scores. Mendeley dataset seems to be the hardest, because of the severe imbalance and lower amount of malicious samples compared to other datasets.
+
+The throughput for the feature-based models is significantly higher for all datasets. However, this is kept down by the necessity of creating features from URL, which bottlenecks these models significantly. For deep learning models, the throughput is much lower and is heavily dependent on the data. For example, Mendeley contains very similar length URLs that are very short, as discussed in~\ref{sec:url_length}, so BERT-Small is significantly faster there. The exact opposite is true for the private datasets, where URLs vary in size a lot, and URLNet, which uses more aggressive truncation, has the upper hand over BERT-Small even though it has more parameters.
+
+\subsection{Feature based models}
+\label{sec:feature_models}
+
+These models use the same 43 handcrafted features extracted from the URL that were described in Section~\ref{sec:statistical_analysis_url}. For hyper-parameter tuning, the original training set was further divided into training and validation subsets. Specifically, the last fold was reserved as the validation set. This results in a 60/20/20 split (training/validation/test) for the public datasets and an 80/10/10 split for the private dataset. For Log. regression, StandardScalar was applied. It is a preprocessing technique that standardizes each feature. The scaler was fitted on the training set and then applied to the Evaluation set to ensure consistent feature scaling. All of the models were evaluated on CPU.
+
+Hyper-parameters for all models were optimized using randomized grid search. All configuration details and best parameters are recorded in the same notebook. No oversampling, under-sampling, or class weighting was applied to the data directly. Instead, Log. Regression and XGBoost were given class ratio parameters, which should alter their training process to consider the imbalance.
+
+Feature importance was computed for both Log. Regression and XGBoost across all datasets. Identifying which features are truly predictive is useful, as the current inference performance on the private dataset plateaus at around 16,788 samples per second when using all 43 features. Removing less relevant features could improve speed. Additionally, the results provide insight into which types of information are present and useful in each dataset.
+
+\begin{itemize}
+    \item \textbf{Private dataset:} Presence of the \texttt{@} character, number of subdomains, number of question marks in the URL, total length of the query string, and number of path segments in the URL path.
+
+    \item \textbf{Joined dataset:} Presence of the keyword \texttt{login}, use of a suspicious top-level domain (TLD), number of subdomains, presence of the keyword \texttt{secure}, and presence of the keyword \texttt{update}.
+\end{itemize}
+
+The code for training these models is provided in the notebook \wrappedttt{feature\_models.ipynb}
+
+\subsection{URLNet}
+This model, described in Section~\ref{sec:dl_models}, was chosen to represent non-transformer deep learning approaches. According to related work~\cite{TransURL}, transformer-based models consistently outperform traditional deep learning methods on URL classification tasks. Therefore, only a single representative from this category was included.
+
+URLNet was trained and evaluated on a GPU. The model uses both character-level and word-level convolutional branches, corresponding to embedding mode 5. All other hyper-parameters were kept at their default values as defined in the original codebase.
+
+Originally, URLNet was implemented in TensorFlow 1.8, which is not supported on the Databricks platform. To address this, the necessary parts of the code were adapted for TensorFlow 2.14, and the resulting code has been stored in the \texttt{baselines/URLNet} directory. The entire training and evaluation pipeline can be executed using the \wrappedttt{baseline\_run\_urlnet.ipynb} notebook.
+
+It can be observed, that the model has very different number of parameters based on what dataset it is being trained on. This is because the total parameter count includes also the embedding matrices, which depend on the vocabulary sizes. Since each dataset produces a different character and word vocabulary (based on token frequency thresholds), the resulting embedding layers differ in size.
+
+\subsection{BERT-Small}
+\label{baseline:bert_small}
+The model architecture and default hyper-parameters are based on the pre-trained Hugging Face model \texttt{google/bert\_uncased\_L-4\_H-512\_A-8},\footnote{\nolinkurl{https://huggingface.co/google/bert_uncased_L-4_H-512_A-4}} which provides a smaller and faster alternative to standard BERT models. Since the goal of the thesis is to increase throughput, other experiments do not use BERT variants larger than BERT-Small.
+
+The following list describes hyper-parameters used for training the model that were used for training the baseline model provided by the supervisor:
+\begin{itemize}
+    \item \textbf{Architectural parameters} -- These are the default parameters from the Hugging Face model. \#encoder layers = 4, hidden size = 512, \#attention heads = 8, intermediate size = 2048, activation = GELU, dropout = 0.1 (hidden and attention), max position embeddings = 512, vocabulary size = 30,522, positional encoding=absolute, LayerNorm $\epsilon$=10e-12.
+
+    \item \textbf{Training} -- Maximum sequence length = 256, batch size = 128, \#train epochs = 2, loss = Focal~\cite{lin2018focallossdenseobject} ($\gamma=2$, $\alpha=\mathrm{Not used}$), LR = 10e-5 for entire model, weight decay = 0, optimizer = AdamW.
+
+    \item \textbf{Tokenization} -- Hugging Face AutoTokenizer with padding and truncation enabled, maximum sequence length before truncation = 256.
+\end{itemize}
+
+\subsection{Multi-class classification}
+\label{sec:multi_class_experiment}
+This section evaluates the baseline models on the Kaggle Multiple dataset to assess whether multi-class classification remains effective when domain-aware folding is applied. That is a scenario not previously explored in related work. The Kaggle Multiple dataset is very similar to the Kaggle Binary dataset, which is known to be easy to train on, as shown in Table~\ref{tab:baseline_binary_classification_results}. For this reason, and because multi-class labels are not available for the private dataset that reflects real-world conditions, the multi-class Evaluation is included only in this section. All subsequent experiments focus solely on binary classification.
+
+The main metrics that should be examined in this case are individual F1 scores on malicious classes and also macro F1 score. Table~\ref{tab:multiclass_kaggle_multiple} presents the results. The BERT-Small model differentiates between classes with high consistency, achieving an F1 scores above 0.9 for all classes and macro. This confirms that transformer-based models could effectively generalize across multiple malicious categories, even when relying solely on URL strings, although confirming this would require Evaluation of real-world data.
+
+URLNet is not included in these multi-class benchmarks, as its original implementation supports only binary classification and extending it for multi-class scenarios would require substantial code modifications to the URLNet training script not justified for a baseline-only evaluation.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{
+            >{\raggedright\arraybackslash}p{3cm}
+            llllllll
+            }
+            \toprule
+            \textbf{Model}
+                            & \textbf{Malware-F1}
+                            & \textbf{Phishing-F1}
+                            & \textbf{Macro-F1}
+                            & \textbf{Macro-Prec.}
+                            & \textbf{Macro-Rec.}
+                            & \textbf{\shortstack{Thr.                                                                 \\Model}}
+                            & \textbf{\shortstack{Thr.                                                                 \\Pipeline}}
+                            & \textbf{\# Params}                                                                       \\
+            \midrule
+            Log. Regression & 0.7137                   & 0.4946 & 0.6696 & 0.6429 & 0.7694 & 27.1 M  & 20.1 K & 132    \\
+            Naive Bayes     & 0.1627                   & 0.2367 & 0.3548 & 0.4389 & 0.5089 & 931.1 K & 20.1 K & 132    \\
+            XGBoost         & 0.7932                   & 0.7715 & 0.8398 & 0.8850 & 0.8139 & 516.5 K & 20.1 K & 16.7 K \\
+            BERT-Small      & 0.9244                   & 0.9093 & 0.9379 & 0.9459 & 0.9319 & 604     & 539    & 28.8 M \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Multi-class classification performance of selected models on the Kaggle Multiple dataset.}
+    \label{tab:multiclass_kaggle_multiple}
+\end{table}
+
+\section{Training faster models}
+
+The first approach to improving the trade-off between throughput and predictive Performance is to start with a smaller, faster model and enhance its accuracy to approach that of the baselines. Table~\ref{tab:bert_model_selection} compares different BERT-Tiny and BERT-Mini variants from~\cite{turc2019} in terms of speed and baseline performance. This section focuses on that through the following steps:
+\begin{itemize}
+    \item Conducting an ablation study on BERT-Tiny hyper-parameters to identify changes that could lead to performance improvements.
+    \item Introducing a novel data augmentation method -— domain masking.
+\end{itemize}
+Finally, both model variants are trained on the full training set from the joined and private datasets using the insights and methods described above.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{lllllllllccc}
+            \toprule
+            \textbf{Model}
+                       & \textbf{F1$_1$}
+                       & \textbf{Rec$_1$}
+                       & \textbf{Prec$_1$}
+                       & \textbf{Macro-F1}
+                       & \textbf{ROC-AUC}
+                       & \textbf{\shortstack{Thr.                                                                                 \\Model}}
+                       & \textbf{\shortstack{Thr.                                                                                 \\Pipeline}}
+                       & \textbf{\#Params}
+                       & \textbf{\shortstack{Encoder                                                                              \\Layers}}
+                       & \textbf{\shortstack{Hidden                                                                               \\size}}
+                       & \textbf{\shortstack{Attention                                                                            \\Heads}}                               \\
+            \midrule
+            BERT-Tiny  & 0.7565                        & 0.6874 & 0.8411 & 0.8672 & 0.9443 & 4,939 & 1,917 & 4.4 M  & 2 & 128 & 2 \\
+            BERT-Mini  & 0.8166                        & 0.7365 & 0.9162 & 0.9001 & 0.9548 & 1,528 & 1,008 & 11.2 M & 4 & 256 & 4 \\
+            BERT-Small & 0.8648                        & 0.8103 & 0.9271 & 0.9261 & 0.9599 & 497   & 429   & 28.8 M & 4 & 512 & 8 \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Comparison of BERT-Tiny, BERT-Mini, and BERT-Small on the private test set. Each model was trained on the full training set. Throughput is measured both for the model forward pass and for the full pipeline, including Tokenization.}
+    \label{tab:bert_model_selection}
+\end{table}
+
+\subsection{BERT-Tiny ablation study}
+\label{sec:BERT-Tiny-finetune}
+A specific set of hyper-parameters was chosen as the ablation baseline, denoted as A0, and in each run, one or more parameters of A0 were modified. The resulting Performance was then compared to A0 to assess the Impact of each parameter value. The ablation study is done both on private and public dataset. It is crucial to perform the studies on a validation set rather than the test set, as the results directly inform the selection of hyper-parameters for subsequent models.
+
+A0 is derived from the baseline configuration described in Section~\ref{baseline:bert_small}, denoted as B0. Several new hyper-parameters were added or changed. Since A0 outperformed B0 in terms of predictive Performance on both private and joined datasets, it was selected as the starting point for the ablation study instead of B0. The key changes are summarized below:
+
+\begin{itemize}
+    \item Train epochs = 5
+    \item Hidden dropout = 0 to increase the capacity of the BERT-Tiny model, which is already highly constrained.
+    \item Add weight decay = 0.01 to compensate for the decrease in dropout.
+    \item Freeze BERT encoder for the first epoch of training, allowing only the randomly initialized classifier head to be updated. This aims to stabilize training and reduce the risk of catastrophic forgetting in such a small model.
+    \item Separate learning rates were used for the encoder and classifier: LR$_{\text{BERT}}$ = 3e-5 and LR$_{\text{clf}}$ = 2e-3, to address the different initialization states of the two components.
+\end{itemize}
+
+\subsubsection*{Ablation on private data}
+\label{sec:private_ablation}
+The dataset was initially split into 80\% training, 10\% validation, and 10\% test. One fold (1/9 of the training portion) was held out as a validation set, and the remaining eight folds were used for training. 30\% of each training fold was used and selected through stratified sampling to preserve class balance. Despite this down-sampling, the resulting training remained large (683,608 training samples and 297,071 validation samples). Since only relative comparison is important here, this approach should be valid way to select hyper-parameters.
+
+Table~\ref{tab:bert_tiny_ablation} presents the full ablation study. Changes that increase $F1_1$ or do not change it significantly and increase Rec$_1$ are labelled with the U prefix (U1, ...) and changes which decrease it have a D prefixed label.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{llllllll}
+            \toprule
+            ID & Modified factor(s)               & \textbf{F1$_1$} & \textbf{Rec$_1$} & \textbf{Prec$_1$} & \textbf{Macro-F1} & \textbf{ROC-AUC} & \textbf{Best epoch} \\
+            \midrule
+            B0 & Baseline (max 2 epochs)          & 0.553           & 0.413            & 0.837             & 0.776             & 0.909            & 1                   \\
+            B1 & Baseline (max 5 epochs)          & 0.590           & 0.439            & 0.898             & 0.776             & 0.896            & 4                   \\
+            A0 & Ablation baseline                & 0.622           & 0.484            & 0.870             & 0.793             & 0.915            & 2                   \\
+            \midrule
+            U1 & Focal $\alpha=0.7$               & \textbf{0.740}  & \textbf{0.653}   & 0.853             & 0.855             & 0.933            & 2                   \\
+            U2 & Unfreeze BERT from start         & 0.698           & 0.579            & 0.880             & 0.833             & 0.903            & 3                   \\
+            U3 & Dropout = 0.1                    & 0.676           & 0.541            & 0.902             & 0.822             & 0.931            & 2                   \\
+            U4 & Lower learning rates (both 1e-5) & 0.655           & 0.513            & 0.904             & 0.811             & 0.914            & 5                   \\
+            U5 & Weight decay = 0                 & 0.620           & 0.521            & 0.765             & 0.790             & 0.891            & 4                   \\
+            \midrule
+            D1 & Max sequence length = 128        & 0.614           & 0.457            & 0.939             & 0.789             & 0.914            & 2                   \\
+            D2 & Focal $\gamma=1$                 & 0.595           & 0.441            & 0.912             & 0.779             & 0.899            & 3                   \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Ablation study of BERT-Tiny on the private dataset}
+    \label{tab:bert_tiny_ablation}
+\end{table}
+
+Multiple observations can be made about the table.
+\begin{itemize}
+    \item U1: Using Focal loss with $\alpha = 0.7$ increases both $F1_1$ and Rec$_1$. The $\alpha$ parameter acts as a class weighting term that emphasizes the minority class, which encourages the model to focus on classifying them correctly. This is especially useful in this scenario because of the dataset imbalance and the fact that Rec$_1$ is important.
+    \item U2: Contrary to expectations, freezing the BERT layers at the start of training did not lead to performance improvements.
+    \item U3: Removing dropout did not actually help. Therefore, future values will be set to the default value of the models.
+    \item U4: Decreasing learning rate seems to increase Performance when combined with frozen BERT layers in the first epoch.
+    \item U5: Weight decay seems to have a negative impact on recall. Therefore, it will not be used.
+    \item D1: Reducing the maximum sequence length to 128 harms performance slightly. It indicates that valuable information is being discarded.
+    \item D2: Lowering $\gamma$ from 2 to 1 weakens the ability of the focal loss to focus more on hard examples instead of the easy ones as described in. This mechanism is in detail explored in~\cite{lin2018focallossdenseobject}
+\end{itemize}
+
+Based on the ablation results, the final model configurations are derived by applying the parameter changes marked with a U prefix to the A0 setup. Let this parameter combination be denoted as \textit{Abl Priv.}. Focal loss is used with $\gamma = 2$ and $\alpha = 0.7$, weight decay is set to 0, and the hidden dropout rate is 0.1. The BERT encoder is unfrozen from the start, and a learning rate of 1e-5 is applied uniformly. The maximum sequence length is 256. The number of training epochs is set to 4, as only one model showed improvement beyond that point.
+
+Even though this process does not guarantee an optimal parameter combination, since it does not account for potential interactions between parameters, serves as useful heuristic for finding improved configurations.
+
+\subsubsection*{Ablation on Joined dataset}
+\label{sec:BERT-Tiny-finetune-joined}
+A similar experiment was conducted on the Joined dataset, using the same ablation baseline A0. For this experiment, 60\% of the dataset was allocated for training and 20\% for validation. The remaining 20\% was reserved for the test set, which remained untouched throughout the study.
+
+Interestingly, the baseline ablation model (A0) turned out to be the best-performing configuration in this setting. It highlights how misleading the public datasets can be, and if hyper-parameters are tuned solely on them, the resulting models may not generalize well to real-world data.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{llllllll}
+            \toprule
+            ID & Modified factor(s)               & \textbf{F1$_1$} & \textbf{Rec$_1$} & \textbf{Prec$_1$} & \textbf{Macro-F1} & \textbf{ROC-AUC} & \textbf{Best epoch} \\
+            \midrule
+            B0 & Baseline                         & 0.932           & 0.907            & 0.959             & 0.954             & 0.988            & 5                   \\
+            A0 & Ablation baseline                & \textbf{0.942}  & \textbf{0.922}   & \textbf{0.963}    & \textbf{0.960}    & \textbf{0.989}   & \textbf{4}          \\
+            \midrule
+            D1 & Dropout = 0.1                    & 0.941           & 0.924            & 0.959             & 0.960             & 0.990            & 5                   \\
+            D2 & Classifier learning rate = 0.005 & 0.941           & 0.916            & 0.966             & 0.959             & 0.988            & 5                   \\
+            D3 & Unfreeze BERT from start         & 0.941           & 0.920            & 0.963             & 0.959             & 0.988            & 4                   \\
+            D4 & Focal $\gamma=1$                 & 0.940           & 0.921            & 0.961             & 0.959             & 0.988            & 5                   \\
+            D5 & Weight decay = 0                 & 0.940           & 0.921            & 0.959             & 0.959             & 0.989            & 5                   \\
+            D6 & Focal $\alpha=0.7$               & 0.938           & 0.922            & 0.954             & 0.957             & 0.989            & 3                   \\
+            D7 & BERT learning rate = 1e-5        & 0.932           & 0.910            & 0.956             & 0.954             & 0.986            & 4                   \\
+            D8 & Max sequence length = 128        & 0.929           & 0.908            & 0.950             & 0.951             & 0.987            & 2                   \\
+            D9 & Keep BERT layers frozen          & 0.721           & 0.631            & 0.841             & 0.816             & 0.922            & 2                   \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Ablation study of BERT-Tiny on the joined dataset}
+    \label{tab:bert_tiny_joined_ablation}
+\end{table}
+
+\subsection{Domain masking}
+\label{sec:domain_masking}
+Section~\ref{sec:train_test_split} discusses the necessity of using domain-aware folding during Evaluation but does not address how to prevent the model from memorizing domains during training. This is crucial, as approximately 98\% of second-level domains are associated exclusively with either benign or malicious URLs, making it easy for the model to achieve near-perfect Performance on the training set through memorization.
+
+To mitigate this issue, a novel augmentation technique is proposed. The method works as follows:
+
+\begin{itemize}
+    \item During batch construction, for each URL, a paired version is created in which the second-level domain is replaced with the special \texttt{[MASK]} substring. The \texttt{[MASK]} token is already part of the tokenizer vocabulary, which means that the result of Tokenization will be one token.
+    \item All examples (original and masked) are shuffled to avoid having paired examples in consecutive order, which could otherwise allow the model to pick up positional correlations.
+    \item For URLs that do not contain a second-level domain, a paired masked version is still created to ensure uniform treatment and avoid de-prioritizing those samples.
+\end{itemize}
+
+This augmentation strategy forces the model to rely on other types of information at every step of the training. If the domain is the only information that can be used to identify the sample, the model can still learn to rely on it. This ensures that such examples do not increase training loss or destabilize training.
+
+The underlying intuition is that this approach should improve generalization for models of all sizes but is likely to be particularly beneficial for BERT-Mini or BERT-Small. This is because the method encourages the model to learn both domain-related and domain-independent features, and smaller models may not have sufficient capacity to effectively capture both. For this reason, only BERT-Mini will be trained using domain masking.
+
+Since the number of URLs effectively doubles, it is practical to reduce the number of training epochs by half to maintain a consistent training duration.
+\subsection{Training BERT-Tiny, BERT-Mini}
+
+Table~\ref{tab:private_train} presents a comparison of baseline models to the fine-tuned BERT-Tiny and BERT-Mini variants on the private dataset. Among the fine-tuned models, the domain-masked BERT-Mini stands out as the best. It achieves the highest Rec$_1$ and comes very close to the BERT-Small baseline in terms of F1$_1$, making it the best overall model for this task—especially considering that high recall is the primary objective. Notably, even the standard BERT-Mini model (without domain masking) surpasses BERT-Small in recall. In contrast, BERT-Tiny does not reach a sufficient level of Performance, suggesting that its capacity is insufficient for the task, even when fine-tuned.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{llllllll}
+            \toprule
+            \textbf{Model}          & \textbf{F1$_1$} & \textbf{Rec$_1$} & \textbf{Prec$_1$} & \textbf{Macro-F1} & \textbf{ROC-AUC} \\
+            \midrule
+            BERT-Tiny (B0)          & 0.7565          & 0.6874           & 0.8411            & 0.8672            & 0.9443           \\
+            BERT-Mini  (B0)         & 0.8166          & 0.7365           & 0.9162            & 0.9001            & 0.9548           \\
+            BERT-Small  (B0)        & \textbf{0.8648} & 0.8103           & 0.9271            & 0.9261            & 0.9599           \\
+            \midrule
+            BERT-Tiny  (Abl Priv.)  & 0.7747          & 0.7290           & 0.8265            & 0.8767            & 0.9383           \\
+            BERT-Mini  (Abl Priv.)  & 0.8248          & 0.8312           & 0.8185            & 0.9035            & 0.9632           \\
+            \textbf{BERT-Mini (DM)} & \textbf{0.8625} & \textbf{0.8368}  & \textbf{0.8899}   & \textbf{0.9246}   & 0.9589           \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Results on the private dataset. All models listed in the lower section were trained using hyper-parameters derived from an ablation study conducted on the private dataset (Abl Priv.). The domain-masked BERT-mini (DM) was also trained using Abl. Priv. parameters, but only two epochs, as the number of training samples effectively doubled.}
+    \label{tab:private_train}
+\end{table}
+
+A similar comparison is performed on the joined dataset. For this case, BERT-Tiny with the A0 configuration is used, as it achieved the best results on the dataset. The BERT-Mini models, however, are trained using the (Abl Priv.) configuration. This is because the best hyper-parameter configuration can be seen in Table~\ref{tab:bert_tiny_joined_ablation} for BERT-Tiny may not generalize to BERT-Mini, but the insights from individual ablations remain applicable across model sizes.
+
+Once again, the domain-masked BERT-Mini outperforms the others~\ref{tab:joined_train_results}, achieving the highest Rec$_1$ and a comparable F1$_1$ to the remaining models. Notably, if the Evaluation were limited to public datasets, the results might misleadingly suggest that BERT-Tiny performs well. However, as shown in the previous table, this does not hold true in real-world data.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{llllllll}
+            \toprule
+            \textbf{Model}                               & \textbf{F1$_1$} & \textbf{Rec$_1$} & \textbf{Prec$_1$} & \textbf{Macro-F1} & \textbf{ROC-AUC} \\
+            \midrule
+            BERT-Small (B0)                              & 0.9322          & 0.9149           & 0.9501            & 0.9563            & 0.9845           \\
+            \midrule
+            BERT-Tiny  (A0)                              & 0.9220          & 0.8941           & 0.9516            & 0.9499            & 0.9812           \\
+            BERT-Mini  (Abl Priv.)                       & 0.9327          & 0.9132           & 0.9530            & 0.9567            & 0.9872           \\
+            \textbf{BERT-Mini domain masked} (Abl Priv.) & 0.9293          & \textbf{0.9210}  & 0.9378            & 0.9544            & 0.9875           \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Results on the joined dataset}
+    \label{tab:joined_train_results}
+\end{table}
+
+This section shows that BERT-Mini with domain masking can serve as a viable substitute for BERT-Small, offering similar or improved predictive Performance while achieving three times higher model throughput, as shown in Table~\ref{tab:bert_model_selection}.
+
+\section{Model Compression and Acceleration}
+This section presents the experimental results of the compression techniques outlined in Section~\ref{sec:model_compression_methods}, applied to the BERT-Small with baseline parameters and the domain-masked BERT-Mini models on both the private and joined datasets. First, static quantization is discussed in detail. Subsequently, experiments with dynamic quantization are described. Finally, a comparison of all methods enabling GPU execution is provided and evaluated on the complete test set for both datasets and models.
+
+\subsection{Static quantization}
+\label{sec:static_quant_experiments}
+
+For static quantization, the Transformer Deploy library~\cite{els-rd_transformer-deploy_2025} was used. The default set of operations provided by the library was selected for the experiments, while all remaining operations were kept in \wrappedttt{Float32}. The following operations were quantized to \wrappedttt{Int8}: Matrix multiplications (MatMul), Element-wise additions (Add), Batched matrix multiplications (BMM), Layer normalization (LayerNorm), Linear (fully connected) layers.
+
+The actual quantization is performed by inserting fake quantization and dequantization nodes into the PyTorch model, which are then exported to ONNX. At runtime, these nodes are used to build an actual quantized model using NVIDIA TensorRT execution provider \footnote{More information about can be found in: \nolinkurl{https://docs.nvidia.com/deeplearning/tensorrt/latest/getting-started/quick-start-guide.html}}. Evaluation has been done on both the built TensorRT variants and PyTorch fake-quantized version and they match in terms of predictive Performance.
+
+The experiments use percentile calibration with a 99.9\% coefficient with 1000 calibration samples from the training dataset. Several other coefficients were tested on the validation dataset using the BERT-small model with B0 parameters. Table~\ref{tab:static_quant_percentiles} summarizes the results. Even though the F1$_1$ is the lowest for 99.9, Rec$_1$ is the highest, which makes it suitable for the task.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{llllll}
+            \toprule
+            \textbf{Percentile} & \textbf{F1$_1$} & \textbf{Rec$_1$} & \textbf{Prec$_1$} & \textbf{Macro-F1} & \textbf{ROC-AUC} \\
+            \midrule
+            99.9                & 0.8620          & 0.8187           & 0.9100            & 0.9244            & 0.9542           \\
+            99.99               & 0.8640          & 0.8110           & 0.9243            & 0.9256            & 0.9555           \\
+            99.999              & 0.8693          & 0.8102           & 0.9377            & 0.9286            & 0.9562           \\
+            99.9999             & 0.8648          & 0.8031           & 0.9368            & 0.9262            & 0.9556           \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Impact of calibration percentile on validation performance (BERT-small)}
+    \label{tab:static_quant_percentiles}
+\end{table}
+
+The \wrappedttt{quantization\_end\_to\_end} from~\cite{els-rd_transformer-deploy_2025} was used as a starting point for the code in the thesis. However, the provided example notebooks could not be reproduced, probably due to version incompatibilities. As a result, modifications to the library were made and stored in the \wrappedttt{libraries} folder. These adjustments were made with the assistance of the O1 ChatGPT model.
+
+For reproducibility purposes, the TensorRT builder requires sufficient workspace size. For the BERT-small model, a workspace of 4 GB is necessary, while 1 GB suffices for the BERT-mini variant. Insufficient workspace allocation prevents the model from being built.
+
+\subsection{Dynamic quantization}
+\label{sec:dynamic_quant_experiments}
+
+Dynamic quantization was performed using ONNX Runtime and evaluated on a limited subset of 16,000 samples from the test set of each dataset, as GPU execution is not supported. The configuration applied 8-bit integer quantization to weights, targeted MatMul and Gemm (General matrix multiply) operations, enabled per-channel quantization.
+
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{
+            >{\raggedright\arraybackslash}p{1.2cm}
+            >{\raggedright\arraybackslash}p{3.3cm}
+            llllll
+            }
+            \toprule
+            \textbf{Dataset}
+             & \textbf{Model}
+             & \textbf{Compression method}
+             & \textbf{F1$_1$}
+             & \textbf{Rec$_1$}
+             & \textbf{Prec$_1$}
+             & \textbf{Thr. Model}
+             & \textbf{Thr. Pipeline}                                                                                    \\
+            \midrule
+            Private
+             & BERT-Mini (DM)              & Dynamic quantization & 0.8495 & 0.8373 & 0.8621 & 85  (1.42x) & 82  (1.41x) \\
+             &                             & CPU baseline         & 0.8515 & 0.8325 & 0.8712 & 60  (1.00x) & 58  (1.00x) \\
+             & BERT-Small (B0)             & Dynamic quantization & 0.8647 & 0.7908 & 0.9538 & 24  (1.19x) & 24  (1.19x) \\
+             &                             & CPU baseline         & 0.8619 & 0.7997 & 0.9345 & 20  (1.00x) & 20  (1.00x) \\
+            Joined
+             & BERT-Mini (DM)              & Dynamic quantization & 0.9280 & 0.9154 & 0.9410 & 198 (1.48x) & 191 (1.46x) \\
+             &                             & CPU baseline         & 0.9289 & 0.9184 & 0.9396 & 134 (1.00x) & 131 (1.00x) \\
+             & BERT-Small (B0)             & Dynamic quantization & 0.9278 & 0.9126 & 0.9435 & 65  (2.62x) & 64  (2.60x) \\
+             &                             & CPU baseline         & 0.9289 & 0.9118 & 0.9467 & 25  (1.00x) & 25  (1.00x) \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Performance and throughput of dynamically quantized BERT models on the limited subset of test part joined and private datasets on CPU.}
+    \label{tab:dynamic_quant_summary}
+\end{table}
+
+\subsection{Results discussion}
+\begin{table}[H]
+    \centering
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{
+            >{\raggedright\arraybackslash}p{1.2cm}
+            >{\raggedright\arraybackslash}p{3.3cm}
+            llllll
+            }
+            \toprule
+            \textbf{Dataset}
+             & \textbf{Model}
+             & \textbf{Compression method}
+             & \textbf{F1$_1$}
+             & \textbf{Rec$_1$}
+             & \textbf{Prec$_1$}
+             & \textbf{Thr. Model}
+             & \textbf{Thr. Pipeline}                                                                                                                    \\
+            \midrule
+            \addlinespace
+            Private
+             & BERT-Mini (DM)              & Float16 optimized     & 0.8625 & 0.8367          & 0.8899 & \textbf{4,705 (2.94x)} & \textbf{1,701 (1.62x)} \\
+             &                             & Static quant.         & 0.8408 & \textbf{0.8461} & 0.8355 & 3,688 (2.31x)          & 1,530 (1.46x)          \\
+             &                             & Quant. aware training & 0.8534 & 0.8149          & 0.8956 & 3,688 (2.31x)          & 1,530 (1.46x)          \\
+             &                             & Optimized baseline    & 0.8625 & 0.8368          & 0.8899 & 2,015 (1.26x)          & 1,206 (1.15x)          \\
+             &                             & GPU baseline          & 0.8625 & 0.8368          & 0.8899 & 1,598 (1.00x)          & 1,049 (1.00x)          \\
+             & BERT-Small (B0)             & Float16 optimized     & 0.8649 & 0.8104          & 0.9272 & 3,166 (6.43x)          & 1,573 (3.68x)          \\
+             &                             & Static quant.         & 0.8595 & 0.8168          & 0.9069 & 2,335 (4.74x)          & 1,357 (3.18x)          \\
+             &                             & Quant. aware training & 0.8486 & 0.7800          & 0.9304 & 2,335 (4.74x)          & 1,357 (3.18x)          \\
+             &                             & Optimized baseline    & 0.8648 & 0.8103          & 0.9271 & 545 (1.11x)            & 463 (1.08x)            \\
+             &                             & GPU baseline          & 0.8648 & 0.8103          & 0.9271 & 493 (1.00x)            & 427 (1.00x)            \\
+            \addlinespace
+            Joined
+             & BERT-Mini (DM)              & Float16 optimized     & 0.9293 & 0.9210          & 0.9377 & \textbf{8,624 (3.25x)} & \textbf{3,316 (1.83x)} \\
+             &                             & Static quant.         & 0.9250 & \textbf{0.9272} & 0.9227 & 5,454 (2.05x)          & 2,404 (1.32x)          \\
+             &                             & Quant. aware training & 0.9310 & 0.9158          & 0.9466 & 5,454 (2.05x)          & 2,404 (1.32x)          \\
+             &                             & Optimized baseline    & 0.9293 & 0.9210          & 0.9378 & 3,267 (1.23x)          & 2,060 (1.13x)          \\
+             &                             & GPU baseline          & 0.9293 & 0.9210          & 0.9378 & 2,656 (1.00x)          & 1,815 (1.00x)          \\
+             & BERT-Small (B0)             & Float16 optimized     & 0.9322 & 0.9148          & 0.9501 & 4,469 (6.37x)          & 2,484 (3.99x)          \\
+             &                             & Static quant.         & 0.9306 & 0.9176          & 0.9440 & 3,286 (4.68x)          & 2,267 (3.64x)          \\
+             &                             & Quant. aware training & 0.9333 & 0.9121          & 0.9555 & 3,286 (4.68x)          & 2,267 (3.64x)          \\
+             &                             & Optimized baseline    & 0.9322 & 0.9149          & 0.9501 & 770 (1.10x)            & 673 (1.08x)            \\
+             &                             & GPU baseline          & 0.9322 & 0.9149          & 0.9501 & 702 (1.00x)            & 622 (1.00x)            \\
+            \bottomrule
+        \end{tabular}
+    }
+    \caption{Performance and throughput of compressed BERT models on the joined and private datasets. Models with highest recall and highest throughput are highlighted in bold. Throughput have also speedup relative to their GPU baseline version}
+    \label{tab:compression_summary}
+\end{table}
+
+Table~\ref{tab:compression_summary} summarizes results for all methods that can be run on GPU. Several notable observations can be made:
+\begin{itemize}
+    \item GPU baseline -- The PyTorch model was converted to ONNX and evaluated using ONNX Runtime~\cite{onnxruntime_2018}. This verifies that the model's predictive Performance matches the original PyTorch version and that the throughput is measured correctly for ONNX models.
+    \item Optimized baseline -- Applies ONNX graph optimizations (opt\_level=2) for operator fusion, constant folding, and node elimination \footnote{Details about model optimization can be found here:\nolinkurl{https://onnxruntime.ai/docs/performance/model-optimizations/graph-optimizations.html}}. This typically leads to a performance improvement of around 1.1x.
+    \item Float16 optimized -- Builds upon the optimized baseline by converting model weights and computations to \wrappedttt{Float16}. This configuration achieves the highest throughput gains with almost no impact on predictive Performance.
+    \item Static quantization -- Among all methods in the table, this one suffers the largest drop in F1$_1$. However, its Rec$_1$ increases with respect to all other models. Further investigation needs to be conducted on why this is happening.
+    \item Quant. Aware training -- The model generated by the previous method was further trained on a subset of the training dataset (100K samples for both datasets) with a reduced learning rate (2e-7) for both BERT layers and the classifier. Although F1$_1$ increases, its recall decreases, making it less suitable than the statically quantized model.
+    \item Compression delivers larger speedups on BERT-Small than on BERT-Mini because BERT-Small contains more matrix-multiplication-heavy kernels (attention projections and feed-forward layers) whose runtime grows non-linearly with hidden size. If input to those operations is reduced by half (like for Float16), the throughput increases non-linearly.
+    \item For high-throughput models, Tokenization seems to be the bottleneck. Future work could tackle the problem of speeding it up.
+\end{itemize}
+
+Finally, based on the information above, the best model can be chosen. In terms of F1$_1$ and throughput, BERT-Mini with domain masking and Float16 computations seems to be the best model, achieving a 9.5x speedup to Bert-Small baseline GPU throughput while increasing Rec$_1$ and achieving similar F1$_1$.
