@@ -1,5 +1,11 @@
 <!-- for local mlflow debugging run: mlflow ui --backend-store-uri ./bert_finetuning/mlruns --port 5000 -->
 
+This software was developed with the support of the Faculty of Information Technology, Czech Technical University in Prague, fit.cvut.cz
+
+![FIT CTU Logo](fit_ctu_logo.jpg)  <!-- Adjust path and alt text as needed -->
+
+# Abstract
+This thesis addresses malicious URL detection using only the URL string, aiming to develop a model faster than the BERT-Small baseline while maintaining comparable predictive performance. Experiments were conducted on both publicly available datasets and a private dataset collected from a real computer network. A thorough analysis of the datasets and a detailed description of methods for malicious URL detection are provided prior to proposing the final solution. Two complementary approaches were combined to achieve the best results. The first one involves training smaller models, optimizing their hyper-parameters and proposing a new augmentation method -- domain masking, which prevents model from memorizing specific second level domain names and forces it to focus on general string features. To further improve inference speed, model compression techniques, such as static quantization, computation in Float16, were applied. The resulting BERT-Mini model with Float16 and domain masking surpassed the BERT-Small baseline in recall and achieved a 9.5x throughput improvement.
 
 # Setup
 - Run this in the root folder based on what machine you are running the code on.
